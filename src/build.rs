@@ -1,9 +1,9 @@
+use std::env;
+use std::fs;
+use std::io::Write;
 #[allow(unused_imports)]
 use std::path::{Path, PathBuf};
-use std::fs;
-use std::env;
 use std::process;
-use std::io::Write;
 use std::str::FromStr;
 
 fn compiler(config_dir: &Path, vendor: &Path) -> cc::Build {
@@ -25,7 +25,8 @@ fn compiler(config_dir: &Path, vendor: &Path) -> cc::Build {
 }
 
 fn main() {
-    let root = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
+    let root =
+        PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
     let root = dunce::canonicalize(root).expect("root dir");
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("outdir"));
     let config_dir = out_dir.join("include");
@@ -34,38 +35,86 @@ fn main() {
 
     // cc crate needs emscripten target to use correct `ar`
     if env::var("TARGET").map_or(false, |t| t == "wasm32-unknown-unknown") {
-        println!("cargo:warning=If the build fails, try using wasm32-unknown-emscripten target instead");
+        println!(
+            "cargo:warning=If the build fails, try using wasm32-unknown-emscripten target instead"
+        );
         eprintln!("If the build fails, try using wasm32-unknown-emscripten target instead");
     }
 
-    if cfg!(feature = "unwinding") && env::var_os("CARGO_CFG_PANIC").as_deref() == Some("abort".as_ref()) {
+    if cfg!(feature = "unwinding")
+        && env::var_os("CARGO_CFG_PANIC").as_deref() == Some("abort".as_ref())
+    {
         println!("cargo:warning=libjpeg will not be able to gracefully handle errors when used with panic=abort");
     }
 
     let _ = fs::create_dir_all(&config_dir);
 
-    println!("cargo:include={}", env::join_paths(&[&config_dir, &vendor]).expect("inc").to_str().expect("inc"));
+    println!(
+        "cargo:include={}",
+        env::join_paths(&[&config_dir, &vendor])
+            .expect("inc")
+            .to_str()
+            .expect("inc")
+    );
     let mut c = compiler(&config_dir, &vendor);
 
     let target_pointer_width = env::var("CARGO_CFG_TARGET_POINTER_WIDTH").expect("target");
 
     let files = &[
-        "vendor/jcapimin.c", "vendor/jcapistd.c", "vendor/jccoefct.c", "vendor/jccolor.c",
-        "vendor/jcdctmgr.c", "vendor/jcext.c", "vendor/jchuff.c", "vendor/jcinit.c",
-        "vendor/jcmainct.c", "vendor/jcmarker.c", "vendor/jcmaster.c", "vendor/jcomapi.c",
-        "vendor/jcparam.c", "vendor/jcphuff.c", "vendor/jcprepct.c", "vendor/jcsample.c",
-        "vendor/jctrans.c", "vendor/jdapimin.c", "vendor/jdapistd.c", "vendor/jdatadst.c",
-        "vendor/jdatasrc.c", "vendor/jdcoefct.c", "vendor/jdcolor.c", "vendor/jddctmgr.c",
-        "vendor/jdhuff.c", "vendor/jdinput.c", "vendor/jdmainct.c", "vendor/jdmarker.c",
-        "vendor/jdmaster.c", "vendor/jdmerge.c", "vendor/jdphuff.c", "vendor/jdpostct.c",
-        "vendor/jdsample.c", "vendor/jdtrans.c", "vendor/jerror.c", "vendor/jfdctflt.c",
-        "vendor/jfdctfst.c", "vendor/jfdctint.c", "vendor/jidctflt.c", "vendor/jidctfst.c",
-        "vendor/jidctint.c", "vendor/jidctred.c", "vendor/jmemmgr.c", "vendor/jmemnobs.c",
-        "vendor/jquant1.c", "vendor/jquant2.c", "vendor/jutils.c",
+        "vendor/jcapimin.c",
+        "vendor/jcapistd.c",
+        "vendor/jccoefct.c",
+        "vendor/jccolor.c",
+        "vendor/jcdctmgr.c",
+        "vendor/jcext.c",
+        "vendor/jchuff.c",
+        "vendor/jcinit.c",
+        "vendor/jcmainct.c",
+        "vendor/jcmarker.c",
+        "vendor/jcmaster.c",
+        "vendor/jcomapi.c",
+        "vendor/jcparam.c",
+        "vendor/jcphuff.c",
+        "vendor/jcprepct.c",
+        "vendor/jcsample.c",
+        "vendor/jctrans.c",
+        "vendor/jdapimin.c",
+        "vendor/jdapistd.c",
+        "vendor/jdatadst.c",
+        "vendor/jdatasrc.c",
+        "vendor/jdcoefct.c",
+        "vendor/jdcolor.c",
+        "vendor/jddctmgr.c",
+        "vendor/jdhuff.c",
+        "vendor/jdinput.c",
+        "vendor/jdmainct.c",
+        "vendor/jdmarker.c",
+        "vendor/jdmaster.c",
+        "vendor/jdmerge.c",
+        "vendor/jdphuff.c",
+        "vendor/jdpostct.c",
+        "vendor/jdsample.c",
+        "vendor/jdtrans.c",
+        "vendor/jerror.c",
+        "vendor/jfdctflt.c",
+        "vendor/jfdctfst.c",
+        "vendor/jfdctint.c",
+        "vendor/jidctflt.c",
+        "vendor/jidctfst.c",
+        "vendor/jidctint.c",
+        "vendor/jidctred.c",
+        "vendor/jmemmgr.c",
+        "vendor/jmemnobs.c",
+        "vendor/jquant1.c",
+        "vendor/jquant2.c",
+        "vendor/jutils.c",
     ];
 
     for file in files.iter() {
-        assert!(Path::new(file).exists(), "C file is missing. Maybe you need to run `git submodule update --init`?");
+        assert!(
+            Path::new(file).exists(),
+            "C file is missing. Maybe you need to run `git submodule update --init`?"
+        );
         c.file(file);
     }
 
@@ -80,11 +129,18 @@ fn main() {
 
     let pkg_version = env::var("CARGO_PKG_VERSION").expect("pkg");
 
-    fs::write(config_dir.join("jversion.h"), format!("
+    fs::write(
+        config_dir.join("jversion.h"),
+        format!(
+            "
         #define JVERSION \"{pkg_version}\"
         #define JCOPYRIGHT \"Copyright (C)  The libjpeg-turbo Project, Mozilla, and many others\"
         #define JCOPYRIGHT_SHORT JCOPYRIGHT
-    ", pkg_version = pkg_version)).expect("jversion");
+    ",
+            pkg_version = pkg_version
+        ),
+    )
+    .expect("jversion");
 
     println!("cargo:rerun-if-env-changed=SOURCE_DATE_EPOCH");
     let timestamp: u64 = if let Ok(epoch) = env::var("SOURCE_DATE_EPOCH") {
@@ -94,7 +150,9 @@ fn main() {
     };
 
     let mut jconfigint_h = fs::File::create(config_dir.join("jconfigint.h")).expect("jconfint");
-    writeln!(jconfigint_h, r#"
+    writeln!(
+        jconfigint_h,
+        r#"
         #define BUILD "{timestamp}-mozjpeg-sys"
         #ifndef INLINE
             #if defined(__GNUC__)
@@ -113,12 +171,15 @@ fn main() {
         timestamp = timestamp,
         PACKAGE_NAME = env::var("CARGO_PKG_NAME").expect("pkg"),
         VERSION = pkg_version,
-        SIZEOF_SIZE_T = if target_pointer_width == "32" {4} else {8}
-    ).expect("write");
+        SIZEOF_SIZE_T = if target_pointer_width == "32" { 4 } else { 8 }
+    )
+    .expect("write");
     drop(jconfigint_h); // close the file
 
     let mut jconfig_h = fs::File::create(config_dir.join("jconfig.h")).expect("jconf");
-    writeln!(jconfig_h, r#"
+    writeln!(
+        jconfig_h,
+        r#"
         #define JPEG_LIB_VERSION {JPEG_LIB_VERSION}
         #define LIBJPEG_TURBO_VERSION 0
         #define BITS_IN_JSAMPLE 8
@@ -131,11 +192,16 @@ fn main() {
         #define MEM_SRCDST_SUPPORTED 1
         "#,
         JPEG_LIB_VERSION = abi
-    ).expect("write");
+    )
+    .expect("write");
 
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let thread_local_define = if target_os == "windows" {
-        "#define THREAD_LOCAL __declspec(thread)"
+        "
+        #define THREAD_LOCAL __declspec(thread)
+        #define HAVE_BOOLEAN 1
+        #include <windows.h>
+        "
     } else {
         if target_os == "ios" {
             if env::var_os("IPHONEOS_DEPLOYMENT_TARGET").is_none() {
@@ -149,11 +215,15 @@ fn main() {
     writeln!(jconfig_h, "{}", thread_local_define).unwrap();
 
     if cfg!(feature = "arith_enc") {
-        jconfig_h.write_all(b"#define C_ARITH_CODING_SUPPORTED 1\n").expect("write");
+        jconfig_h
+            .write_all(b"#define C_ARITH_CODING_SUPPORTED 1\n")
+            .expect("write");
         c.file("vendor/jcarith.c");
     }
     if cfg!(feature = "arith_dec") {
-        jconfig_h.write_all(b"#define D_ARITH_CODING_SUPPORTED 1\n").expect("write");
+        jconfig_h
+            .write_all(b"#define D_ARITH_CODING_SUPPORTED 1\n")
+            .expect("write");
         c.file("vendor/jdarith.c");
     }
 
@@ -182,7 +252,8 @@ fn main() {
 
     #[cfg(feature = "with_simd")]
     {
-        let asm_used_for_arch = nasm_needed_for_arch || matches!(target_arch.as_str(), "arm" | "aarch64" | "mips");
+        let asm_used_for_arch =
+            nasm_needed_for_arch || matches!(target_arch.as_str(), "arm" | "aarch64" | "mips");
         if with_simd {
             let simd_dir = vendor.join("simd");
             c.include(&simd_dir);
@@ -192,7 +263,9 @@ fn main() {
 
             // this is generated by cmake, mainly to check compat with intrinsics
             // but we use the older asm versions anyway
-            std::fs::write(config_dir.join("neon-compat.h"), r#"
+            std::fs::write(
+                config_dir.join("neon-compat.h"),
+                r#"
                 /* Define compiler-independent count-leading-zeros and byte-swap macros */
                 #if defined(_MSC_VER) && !defined(__clang__)
                 #define BUILTIN_CLZ(x)  _CountLeadingZeros(x)
@@ -207,7 +280,9 @@ fn main() {
                 #else
                 #error "Unknown compiler"
                 #endif
-                "#).unwrap();
+                "#,
+            )
+            .unwrap();
 
             if target_arch == "arm" || target_arch == "aarch64" {
                 c.include(simd_dir.join("arm"));
@@ -226,27 +301,29 @@ fn main() {
                 "x86_64" => {
                     c.flag_if_supported("-msse");
                     c.file("vendor/simd/x86_64/jsimd.c");
-                },
+                }
                 "x86" => {
                     c.flag_if_supported("-msse");
                     c.file("vendor/simd/i386/jsimd.c");
-                },
-                "mips" => {c.file("vendor/simd/mips/jsimd.c");},
+                }
+                "mips" => {
+                    c.file("vendor/simd/mips/jsimd.c");
+                }
                 "powerpc" | "powerpc64" => {
                     c.flag_if_supported("-maltivec");
                     c.file("vendor/simd/powerpc/jsimd.c");
-                },
+                }
                 "arm" => {
                     c.file("vendor/simd/arm/aarch32/jchuff-neon.c");
                     c.file("vendor/simd/arm/jdcolor-neon.c");
                     c.file("vendor/simd/arm/jfdctint-neon.c");
                     c.file("vendor/simd/arm/aarch32/jsimd.c");
-                },
+                }
                 "aarch64" => {
                     c.file("vendor/simd/arm/jidctfst-neon.c");
                     c.file("vendor/simd/arm/aarch64/jsimd.c");
-                },
-                _ => {},
+                }
+                _ => {}
             }
             if asm_used_for_arch {
                 if nasm_needed_for_arch {
@@ -276,9 +353,12 @@ fn nasm_supported() -> bool {
     if cfg!(feature = "nasm_simd") {
         match process::Command::new("nasm").arg("-v").output() {
             Err(e) => {
-                println!("cargo:warning=NASM not installed. Mozjpeg's SIMD won't be enabled: {}", e);
+                println!(
+                    "cargo:warning=NASM not installed. Mozjpeg's SIMD won't be enabled: {}",
+                    e
+                );
                 false
-            },
+            }
             Ok(out) => {
                 let ver = String::from_utf8_lossy(&out.stdout);
                 if ver.contains("NASM version 0.") {
@@ -310,11 +390,20 @@ fn build_gas(mut c: cc::Build, target_arch: &str, abi: &str) {
 }
 
 #[cfg(feature = "nasm_simd")]
-fn build_nasm(root: &Path, vendor_dir: &Path, out_dir: &Path, target_arch: &str, target_os: &str) -> Vec<PathBuf> {
+fn build_nasm(
+    root: &Path,
+    vendor_dir: &Path,
+    out_dir: &Path,
+    target_arch: &str,
+    target_os: &str,
+) -> Vec<PathBuf> {
     let mut n = nasm_rs::Build::new();
     n.out_dir(out_dir);
 
-    if std::env::var("PROFILE").ok().map_or(false, |s| "debug" == s) {
+    if std::env::var("PROFILE")
+        .ok()
+        .map_or(false, |s| "debug" == s)
+    {
         n.debug(true);
     }
 
@@ -332,14 +421,25 @@ fn build_nasm(root: &Path, vendor_dir: &Path, out_dir: &Path, target_arch: &str,
         "x86_64" => {
             n.define("__x86_64__", None);
             "x86_64"
-        },
+        }
         _ => panic!("Bug: mozjpeg-sys build script is broken on {target_arch}"),
     };
 
     // these should have had .inc extension
-    let dont_compile = ["jccolext-avx2.asm", "jccolext-mmx.asm", "jccolext-sse2.asm", "jcgryext-avx2.asm",
-        "jcgryext-mmx.asm", "jcgryext-sse2.asm", "jdcolext-avx2.asm", "jdcolext-mmx.asm",
-        "jdcolext-sse2.asm", "jdmrgext-avx2.asm", "jdmrgext-mmx.asm", "jdmrgext-sse2.asm"];
+    let dont_compile = [
+        "jccolext-avx2.asm",
+        "jccolext-mmx.asm",
+        "jccolext-sse2.asm",
+        "jcgryext-avx2.asm",
+        "jcgryext-mmx.asm",
+        "jcgryext-sse2.asm",
+        "jdcolext-avx2.asm",
+        "jdcolext-mmx.asm",
+        "jdcolext-sse2.asm",
+        "jdmrgext-avx2.asm",
+        "jdmrgext-mmx.asm",
+        "jdmrgext-sse2.asm",
+    ];
 
     let simd_dir = vendor_dir.join("simd");
     let simd_arch_dir = simd_dir.join(arch_name);
@@ -350,7 +450,9 @@ fn build_nasm(root: &Path, vendor_dir: &Path, out_dir: &Path, target_arch: &str,
         let entry = entry.unwrap();
         let path = entry.path();
         let included = path.extension().map_or(false, |e| e == "asm");
-        let excluded = path.file_name().map_or(true, |f| dont_compile.iter().any(|&e| e == f));
+        let excluded = path
+            .file_name()
+            .map_or(true, |f| dont_compile.iter().any(|&e| e == f));
         if included && !excluded {
             n.file(path.strip_prefix(root).unwrap_or(&path));
         }
